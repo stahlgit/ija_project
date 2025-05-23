@@ -1,0 +1,7 @@
+grid:[4,4]
+{P[2@2][SOUTH]}
+{L[3@2][NORTH, SOUTH, WEST]}
+{L[3@1][EAST, SOUTH]}
+{L[3@3][WEST, EAST]}
+{B[4@1][NORTH]}
+{B[3@4][WEST]}

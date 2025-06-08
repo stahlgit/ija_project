@@ -15,6 +15,8 @@ public class Game implements ToolEnvironment, Observable.Observer {
     private final int cols;
     private final Map<Position, GameNode> board;
     private boolean isRecalculating = false;
+    private Map<Position, Set<Side>> solutionConnectors = new HashMap<>();
+    private Set<Position> solutionNodes = new HashSet<>();
 
     public Game(int rows, int cols) {
         if (rows <= 0 || cols <= 0) throw new IllegalArgumentException("Invalid dimensions");
@@ -250,5 +252,50 @@ public class Game implements ToolEnvironment, Observable.Observer {
             // throw new IllegalArgumentException("At least one BulbNode is required");
         }
         recalculateLight();
+    }
+
+    public void saveSolutionState(){
+        solutionConnectors.clear();
+        solutionNodes.clear();
+
+        for(Map.Entry<Position, GameNode> entry : board.entrySet()) {
+            Position pos = entry.getKey();
+            GameNode node = entry.getValue();
+
+            if (node.isPower() || node.isBulb() || node.isLink()) {
+                solutionNodes.add(pos);
+                solutionConnectors.put(pos, new HashSet<>(node.getConnectors()));
+            }
+        }
+    }
+
+    public void copySolutionState(Game other) {
+        if (other == null) return;
+        this.solutionNodes = new HashSet<>(other.getSolutionNodes());
+        this.solutionConnectors = new HashMap<>();
+        for (Position pos : other.getSolutionNodes()) {
+            Set<Side> connectors = other.getSolutionConnectors(pos);
+            if (connectors != null) {
+                this.solutionConnectors.put(pos, new HashSet<>(connectors));
+            }
+        }
+    }
+
+    public Set<Side> getSolutionConnectors(Position pos) {
+        return solutionConnectors.get(pos);
+    }
+
+    public Set<Position> getSolutionNodes() {
+        return solutionNodes;
+    }
+
+    public Set<Position> findEmptyNodes() {
+        Set<Position> emptyNodes = new HashSet<>();
+        for (Map.Entry<Position, GameNode> entry : board.entrySet()) {
+            if (entry.getValue().isEmpty()) {
+                emptyNodes.add(entry.getKey());
+            }
+        }
+        return emptyNodes;
     }
 }

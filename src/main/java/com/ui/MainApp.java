@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.common.GameNode;
 import com.common.Position;
@@ -31,6 +32,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -54,7 +56,6 @@ public class MainApp extends Application {
     private Timeline timer;
     private Button undoButton;
     private Button redoButton;
-    private Map<Position, List<Side>> originalNodeSides = new HashMap<>();
     private boolean showHint = false;
     private Timeline hintTimer;
 
@@ -133,21 +134,13 @@ public class MainApp extends Application {
             Path logPath = Paths.get("data", "log", difficulty, "level" + levelNumber + ".log");
             String filePath = String.format("data/level_layout/%s/level%d.txt", difficulty.toLowerCase(), levelNumber);
 
+            Game originalGame = null;
             try {
-                Game originalGame = LevelLoader.loadLevel(filePath);
-                originalNodeSides.clear();
+                originalGame = LevelLoader.loadLevel(filePath);
+                originalGame.saveSolutionState();
 
                 originalGame.recalculateLight(); // optional, in case links affect lighting
 
-                for (int r = 1; r <= originalGame.rows(); r++) {
-                    for (int c = 1; c <= originalGame.cols(); c++) {
-                        Position pos = new Position(r, c);
-                        GameNode node = originalGame.node(pos);
-                        if (node != null && !node.isEmpty() && node.light()) {
-                            originalNodeSides.put(pos, new ArrayList<>(node.getConnectors()));
-                        }
-                    }
-                }
             } catch (IOException e) {
                 System.err.println("Failed to load original level for hints: " + e.getMessage());
             }
@@ -181,6 +174,12 @@ public class MainApp extends Application {
                 logger = new GameLogger(difficulty, levelNumber);
                 logger.logNodeStates(game);
             }
+
+            // copy solution state from original level
+            if(originalGame != null){
+                game.copySolutionState(originalGame);
+            }
+
             this.backActionOnWin = () -> showLevelSelection(difficulty, "left");
             showGameScene();
         } catch (IOException e) {
@@ -212,7 +211,7 @@ public class MainApp extends Application {
 
         Button hinButton = new Button("Hint");
         hinButton.setStyle("-fx-font-size: 14px; -fx-pref-width: 80px;");
-        hinButton.setDisable(currentDifficulty == null); // Disable if no level is loaded
+        // hinButton.setDisable(currentDifficulty == null); // Disable if no level is loaded
         hinButton.setOnAction(e-> {
             if (hintTimer != null) hintTimer.stop(); // Reset timer on re-click
     
@@ -238,7 +237,13 @@ public class MainApp extends Application {
             for(int c = 1; c<=game.cols(); c++){
                 Position pos = new Position(r, c);
                 GameNode node = game.node(pos);
-                GameCell cell = new GameCell(node, this::refreshGrid, logger);
+                boolean isSolutionNode = game.getSolutionNodes().contains(pos);
+                GameCell cell = new GameCell(
+                        node,
+                        this::refreshGrid,
+                        logger,
+                        showHint ? node.getRotations() : 0,
+                        isSolutionNode);
                 gameGrid.add(cell, c-1, r-1);
             }
         }
@@ -336,6 +341,7 @@ public class MainApp extends Application {
             logger.logNodeStates(game); // Save current node states
         }
     }
+
     // refreshes the grid, updates the game state and checks for win condition
     private void refreshGrid() {
         game.recalculateLight();
@@ -364,18 +370,25 @@ public class MainApp extends Application {
                 for (int c = 1; c <= game.cols(); c++) {
                     Position pos = new Position(r, c);
                     GameNode node = game.node(pos);
-                    GameCell cell = new GameCell(node, this::refreshGrid, logger);
+                    boolean isSolutionNode = game.getSolutionNodes().contains(pos);
+                    GameCell cell = new GameCell(
+                            node,
+                            this::refreshGrid,
+                            logger,
+                            showHint ? node.getRotations() : 0,
+                            isSolutionNode);
 
-                    if (showHint && originalNodeSides.containsKey(pos)) {
-                        List<Side> original = originalNodeSides.get(pos);
-                        if (!original.equals(node.getConnectors())) {
-                            cell.setStyle("-fx-background-color: #ffcccc;");
-                        } else {
-                            cell.setStyle("");
+                    if(showHint){
+                        if(game.getSolutionNodes().contains(pos)){
+                            Set<Side> expected = game.getSolutionConnectors(pos);
+
+                            if (expected != null && !expected.equals(node.getConnectors())) {
+                                cell.setStyle("-fx-background-color: #ffcccc;"); // wrong rotation
+                            } else {
+                                cell.setStyle("-fx-background-color: #ccffcc;"); // correct rotation
+                            }
                         }
                     }
-
-
 
                     gameGrid.add(cell, c - 1, r - 1);
                 }
@@ -391,11 +404,18 @@ public class MainApp extends Application {
 
         Label rowsLabel = new Label("Rows:");
         Label colsLabel = new Label("Cols:");
+        Label difficultyLabel = new Label("Difficulty:");
 
         TextField rowField = new TextField();
         TextField colField = new TextField();
         rowField.setPromptText("2-20");
         colField.setPromptText("2-20");
+
+        //Create difficulty selector
+        ComboBox<Difficulty> difficultyComboBox = new ComboBox<>();
+        difficultyComboBox.getItems().addAll(Difficulty.values());
+        difficultyComboBox.setPromptText("Select difficulty");
+
 
         Button startButton = new Button("Start Game");
         Label errorLabel = new Label();
@@ -405,19 +425,26 @@ public class MainApp extends Application {
             try {
                 int rows = Integer.parseInt(rowField.getText());
                 int cols = Integer.parseInt(colField.getText());
+                Difficulty difficulty = difficultyComboBox.getValue();
 
-                if (rows >= 2 && rows <= 20 && cols >= 2 && cols <= 20) {
-                    LevelGenerator generator = new LevelGenerator();
-                    game = generator.generateLevel(rows, cols);
-                    this.currentDifficulty = null;
-                    startTimer();
-                    logger = new GameLogger(null, 0);
-                    this.backActionOnWin = this::showMenu;
-                    animationHelper.animateSwitchTo(() -> root.getChildren().setAll(createGameLayout()), "right");
-                    primaryStage.setTitle("Light Circuit - Custom Game");
-                } else {
+                if (rows < 2 || cols < 2 || rows > 20 || cols > 20) {
                     errorLabel.setText("Rows and columns must be between 2 and 20.");
+                    return;
                 }
+                if(difficulty == null){
+                    errorLabel.setText("Please select a difficulty level.");
+                    return;
+                }
+                LevelGenerator generator = new LevelGenerator();
+                game = generator.generateLevel(rows, cols, difficulty);
+
+                this.currentDifficulty = null;
+                startTimer();
+                logger = new GameLogger(null, 0);
+                this.backActionOnWin = this::showMenu;
+
+                animationHelper.animateSwitchTo(() -> root.getChildren().setAll(createGameLayout()), "right");
+                primaryStage.setTitle("Light Circuit - Custom Game");
             } catch (NumberFormatException ex) {
                 errorLabel.setText("Please enter valid integers.");
             }
@@ -435,9 +462,11 @@ public class MainApp extends Application {
         grid.add(rowField, 1, 1);
         grid.add(colsLabel, 0, 2);
         grid.add(colField, 1, 2);
-        grid.add(startButton, 0, 3, 2, 1);
-        grid.add(errorLabel, 0, 4, 2, 1);
-        grid.add(backButton, 0, 5, 2, 1);
+        grid.add(difficultyLabel, 0, 3);
+        grid.add(difficultyComboBox, 1, 3);
+        grid.add(backButton, 0, 4, 2, 1);
+        grid.add(startButton, 1, 4, 1, 1);
+        grid.add(errorLabel, 0, 5, 2, 1);
 
         animationHelper.animateSwitchTo(() -> root.getChildren().setAll(grid), "right");
     }

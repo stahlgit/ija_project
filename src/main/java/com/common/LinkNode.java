@@ -22,7 +22,6 @@ public class LinkNode extends GameNode {
 
     }
 
-    
     @Override
     public boolean isLink() {
         return true;
@@ -79,5 +78,9 @@ public class LinkNode extends GameNode {
             }
         }
         return String.format("{L[%d@%d][%s]}", position.row(), position.col(), sj);
+    }
+
+    public void removeAllConnectors(){
+        this.connectors.clear();
     }
 }

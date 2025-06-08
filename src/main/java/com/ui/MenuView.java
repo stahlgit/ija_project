@@ -38,6 +38,4 @@ public class MenuView extends VBox {
         button.setOnAction(e -> callback.accept(difficulty));
         return button;
     }
-
-    
 }

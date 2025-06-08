@@ -23,17 +23,23 @@ import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.paint.Color;
+import javafx.scene.control.Label;
 
 public class GameCell extends Pane {
     private static final int SIZE = 60;
     private final GameNode node;
     private final Runnable refreshCallback;
     private final GameLogger logger;
+    private final int rotationNeeded;
+    private final boolean isSolutionNode;
 
-    public GameCell(GameNode node,  Runnable refreshCallback, GameLogger logger) {
+    public GameCell(GameNode node,  Runnable refreshCallback, GameLogger logger, int rotationNeeded,
+                    boolean isSolutionNode) {
         this.node = node;
         this.refreshCallback = refreshCallback;
         this.logger = logger;
+        this.rotationNeeded = rotationNeeded;
+        this.isSolutionNode = isSolutionNode;
         setPrefSize(SIZE, SIZE);
         setStyle("-fx-border-color: #444; -fx-border-width: 1px;");
         drawNode();
@@ -45,6 +51,17 @@ public class GameCell extends Pane {
 
         // Draw connectors
         drawConnectors();
+
+        if (isSolutionNode && rotationNeeded != 0) {
+            int rotationsToShow = rotationNeeded;
+            // Handle symmetric nodes (opposite connectors)
+            if (isSymmetricNode()) {
+                if (rotationsToShow == 2) return ;
+                rotationsToShow = 3;
+            }
+            addRotationIndicator(rotationsToShow);
+        }
+
         if (node.isBulb()) {
             Group bulbGroup = drawBulbNode();
 
@@ -185,6 +202,14 @@ public class GameCell extends Pane {
         return line;
     }
 
+    private void addRotationIndicator(int rotationNeeded) {
+        Label indicator = new Label(String.valueOf((4 - rotationNeeded) % 4));
+        indicator.setStyle("-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: gray;");
+        indicator.setLayoutX(SIZE - 20);  // Position in top-right corner
+        indicator.setLayoutY(5);
+        getChildren().add(indicator);
+    }
+
     private void setupClickHandler() {
         setOnMouseClicked(event -> {
             if(event.getButton() == MouseButton.PRIMARY) {
@@ -196,5 +221,10 @@ public class GameCell extends Pane {
                 refreshCallback.run();
             }
         });
+    }
+
+    private boolean isSymmetricNode() {
+        // Check if node has exactly 2 opposite connectors
+        return node.getConnectors().size() == 2 && ((node.north() && node.south()) || (node.east() && node.west()));
     }
 }

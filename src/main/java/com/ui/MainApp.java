@@ -6,15 +6,12 @@ package com.ui;
  * 
  */
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.common.GameNode;
 import com.common.Position;
@@ -31,10 +28,7 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -58,6 +52,8 @@ public class MainApp extends Application {
     private Button redoButton;
     private boolean showHint = false;
     private Timeline hintTimer;
+    private boolean isRandomLevel = false;
+    private Difficulty selectedRandomDifficulty = null;
 
     @Override
     public void start(Stage primaryStage) {
@@ -154,7 +150,7 @@ public class MainApp extends Application {
                     game = LevelLoader.loadLevel(filePath);
                     LevelGenerator.scrambleLinks(game);
                     game.recalculateLight(); // optional, in case links affect lighting
-                    logger = new GameLogger(difficulty, levelNumber);
+                    logger = new GameLogger(difficulty, levelNumber, difficulty);
                     logger.logNodeStates(game);
                     String timeLine = logLines.stream().filter(line -> line.startsWith("time:")).findFirst().orElse("time: ");
                     long oldBestTime = 0;
@@ -164,14 +160,14 @@ public class MainApp extends Application {
                     }
                 }else{
                     game = LevelLoader.loadLevel(logPath.toString());
-                    logger = new GameLogger(difficulty, levelNumber);
+                    logger = new GameLogger(difficulty, levelNumber, difficulty);
                     applyLoggedMoves(game, logger);
                 }
             } else {
                 game = LevelLoader.loadLevel(filePath);
                 LevelGenerator.scrambleLinks(game);
                 game.recalculateLight(); // optional, in case links affect lighting
-                logger = new GameLogger(difficulty, levelNumber);
+                logger = new GameLogger(difficulty, levelNumber, difficulty);
                 logger.logNodeStates(game);
             }
 
@@ -334,7 +330,32 @@ public class MainApp extends Application {
     }
     // this function defines behavior on the exit of the level 
     private void handleLevelExit() {
-        if (logger != null && currentDifficulty != null) {
+        boolean allowSave = true;
+        if(isRandomLevel){
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Save Level");
+            alert.setHeaderText("Do you want to save this randomly generated level?");
+            alert.setContentText("It will be saved under 'Random' difficulty.");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                allowSave = true;
+            }
+            else{
+                allowSave = false;
+                try{
+                    Files.deleteIfExists(logger.getLogPath());
+
+                    int levelNumber = logger.getLevelNumber();
+                    Path layoutPath = Paths.get("data", "level_layout", "random", "level" + levelNumber + ".txt");
+                    Files.deleteIfExists(layoutPath);
+                }catch (IOException e){
+                    System.err.println("Failed to delete unsaved random level log: " + e.getMessage());
+                }
+
+            }
+        }
+        if (allowSave && logger != null && currentDifficulty != null) {
             long elapsed = System.currentTimeMillis() - startTime;
             logger.saveAccumulatedTime(elapsed);
             logger.clearStack();
@@ -436,11 +457,16 @@ public class MainApp extends Application {
                     return;
                 }
                 LevelGenerator generator = new LevelGenerator();
-                game = generator.generateLevel(rows, cols, difficulty);
+                int randomLevelNum = getNextRandomLevelNumber();
+                game = generator.generateLevel(rows, cols, difficulty, randomLevelNum);
 
-                this.currentDifficulty = null;
+                this.selectedRandomDifficulty = difficulty;
+                this.currentDifficulty = "Random";
+                isRandomLevel = true;
+
+                logger = new GameLogger("Random", randomLevelNum, difficulty.name());
+
                 startTimer();
-                logger = new GameLogger(null, 0);
                 this.backActionOnWin = this::showMenu;
 
                 animationHelper.animateSwitchTo(() -> root.getChildren().setAll(createGameLayout()), "right");
@@ -470,6 +496,26 @@ public class MainApp extends Application {
 
         animationHelper.animateSwitchTo(() -> root.getChildren().setAll(grid), "right");
     }
+
+    private int getNextRandomLevelNumber() {
+        File dir = Paths.get("data", "log", "Random").toFile();
+        if (!dir.exists()) dir.mkdirs();
+
+        File[] files = dir.listFiles((d, name) -> name.matches("level\\d+\\.log"));
+        int maxNum = 0;
+        if (files != null) {
+            for (File file : files) {
+                String name = file.getName(); // levelX.log
+                String digits = name.replaceAll("[^\\d]", "");
+                if (!digits.isEmpty()) {
+                    int num = Integer.parseInt(digits);
+                    if (num > maxNum) maxNum = num;
+                }
+            }
+        }
+        return maxNum + 1;
+    }
+
 
     public static void main(String[] args) {
         launch(args);

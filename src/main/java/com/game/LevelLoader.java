@@ -35,7 +35,7 @@ public class LevelLoader {
         if (firstLine.matches("grid:\\[\\d+,\\d+]")) {
             firstLine = firstLine.substring(6, firstLine.length() - 1); // Remove "grid:[" and "]"
             String[] parts = firstLine.split(",");
-            System.out.println("Grid size: " + parts[0] + "x" + parts[1]);
+            // System.out.println("Grid size: " + parts[0] + "x" + parts[1]);
             maxRow = Integer.parseInt(parts[0]);
             maxCol = Integer.parseInt(parts[1]);
         } else {

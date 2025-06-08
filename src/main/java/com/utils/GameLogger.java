@@ -20,14 +20,20 @@ public class GameLogger {
     private long bestTime = Long.MAX_VALUE;
     private long accumulatedTime = 0; 
     private String gridSize = null;
+    private String difficulty;
+    private String actualdifficulty;
+    private int levelNumber;
 
     private Deque<Position> undoStack = new ArrayDeque<>();
     private Deque<Position> redoStack = new ArrayDeque<>();
     private List<String> nodeStates = new ArrayList<>();
 
 
-    public GameLogger(String difficulty, int levelNumber){
+    public GameLogger(String difficulty, int levelNumber, String actualdifficulty){
         this.enableLogging = (difficulty != null);
+        this.difficulty = difficulty;
+        this.actualdifficulty = actualdifficulty;
+        this.levelNumber = levelNumber;
         
         if(enableLogging){
             this.logPath = Paths.get("data", "log", difficulty, "level" + levelNumber + ".log");
@@ -61,6 +67,7 @@ public class GameLogger {
         }
         lines.add("time: ");
         lines.add("accumulated: 0");
+        lines.add("difficulty: " + actualdifficulty);
 
         if (!nodeStates.isEmpty()) {
             lines.addAll(nodeStates);
@@ -83,6 +90,8 @@ public class GameLogger {
                 handleTimeLine(trimmed);
             } else if(trimmed.startsWith("accumulated: ")) {
                 handleAccumulatedLine(trimmed);
+            } else if (trimmed.startsWith("difficulty: ")) {
+                this.difficulty = trimmed.substring(11).trim();
             } else if (trimmed.matches("\\{[A-Z]\\[\\d+@\\d+\\].*}")) { // Matches {E[1@1][]}, {P[2@2][SOUTH]}, etc.
                 nodeStates.add(trimmed);
             } else if(trimmed.matches("\\d+,\\d+")) { 
@@ -156,7 +165,9 @@ public class GameLogger {
         }
         newLines.add("time: " + (bestTime == Long.MAX_VALUE ? "" : bestTime));
         newLines.add("accumulated: " + accumulatedTime);
-        
+        if(difficulty != null){
+            newLines.add("difficulty: " + actualdifficulty);
+        }
         // Node states
         newLines.addAll(nodeStates);
         
@@ -282,6 +293,7 @@ public class GameLogger {
             newLines.add(gridSize);
             newLines.add("time: " + bestTime);
             newLines.add("accumulated: 0");
+            newLines.add("difficulty: " + actualdifficulty);
             newLines.addAll(nodeStates);
             
             lines.clear();
@@ -293,6 +305,9 @@ public class GameLogger {
         }
     }
 
+    public int getLevelNumber(){
+        return levelNumber;
+    }
     private void save() {
         if (!enableLogging) return;
         try {
@@ -300,5 +315,8 @@ public class GameLogger {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public Path getLogPath(){
+        return logPath;
     }
 }

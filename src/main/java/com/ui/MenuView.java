@@ -26,11 +26,12 @@ public class MenuView extends VBox {
         Button easyButton = createDifficultyButton("Easy", onDifficultySelected);
         Button mediumButton = createDifficultyButton("Medium", onDifficultySelected);
         Button hardButton = createDifficultyButton("Hard", onDifficultySelected);
+        Button randomButton = createDifficultyButton("Random", onDifficultySelected);
 
         Button customBoardButton = new Button("Custom Board");
         customBoardButton.setOnAction(e -> onPlayPreloaded.run());
 
-        getChildren().addAll(easyButton, mediumButton, hardButton, customBoardButton);
+        getChildren().addAll(easyButton, mediumButton, hardButton, randomButton,customBoardButton);
     }
 
     private Button createDifficultyButton(String difficulty, Consumer<String> callback) {

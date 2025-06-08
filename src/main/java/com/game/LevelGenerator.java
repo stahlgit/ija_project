@@ -7,12 +7,17 @@ package com.game;
 import com.common.*;
 import com.ui.Difficulty;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LevelGenerator {
     private final Random random = new Random();
 
-    public Game generateLevel(int rows, int cols, Difficulty difficulty) {
+    public Game generateLevel(int rows, int cols, Difficulty difficulty, int levelNumber) {
         Game game = new Game(rows, cols);
         Position startPos = randomPosition(rows, cols);
         Side startDir = findValidDirection(startPos, game);
@@ -68,6 +73,7 @@ public class LevelGenerator {
 
         // Save pre-scrambled state for hinting
         game.saveSolutionState();
+        saveOriginalLayout(game, levelNumber);
         scrambleLinks(game);
 
         if (difficulty != Difficulty.Easy){
@@ -234,6 +240,32 @@ public class LevelGenerator {
         // Add remaining connectors (if any)
         for (int i = 2; i < numConnectors; i++) {
             node.addConnector(allSides.get(i));
+        }
+    }
+
+    private void saveOriginalLayout(Game game, int levelNumber) {
+        Path layoutPath = Paths.get("data", "level_layout", "random", "level" + levelNumber + ".txt");
+        try {
+            Files.createDirectories(layoutPath.getParent());
+
+            List<String> lines = new ArrayList<>();
+            lines.add("grid:[" + game.rows() + "," + game.cols() + "]");
+
+            for (Map.Entry<Position, GameNode> entry : game.getBoard().entrySet()) {
+                GameNode node = entry.getValue();
+                if (node.isEmpty()) continue;
+
+                String type = node.toString().substring(1, 1 + 1); // single char: P, B, L
+                Position pos = node.getPosition();
+                String connectorStr = node.getConnectors().stream()
+                        .map(Enum::name)
+                        .collect(Collectors.joining(","));
+                lines.add(String.format("{%s[%d@%d][%s]}", type, pos.row(), pos.col(), connectorStr));
+            }
+
+            Files.write(layoutPath, lines);
+        } catch (IOException e) {
+            System.err.println("Failed to save original layout for random level: " + e.getMessage());
         }
     }
 

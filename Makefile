@@ -11,3 +11,4 @@ compile:
 
 clean:
 	rm -rf data/log/*
+	rm data/level_layout/random/*

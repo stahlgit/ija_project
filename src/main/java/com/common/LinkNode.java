@@ -52,6 +52,7 @@ public class LinkNode extends GameNode {
             case WEST -> Side.NORTH;
             case EAST -> Side.SOUTH;
         }).collect(Collectors.toSet());
+        rotations = (rotations + 1) % 4;
         notifyObservers();
     }
 
@@ -63,6 +64,7 @@ public class LinkNode extends GameNode {
             case WEST -> Side.SOUTH;
             case EAST -> Side.NORTH;
         }).collect(Collectors.toSet());
+        rotations = (rotations + 3) % 4; // equivalent to -1 mod 4
         notifyObservers();
     }
 

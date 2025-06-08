@@ -13,6 +13,7 @@ public abstract class GameNode extends AbstractObservableField {
     protected Position position;
     protected boolean lit = false;
     protected Set<Side> connectors = new HashSet<>();
+    protected int rotations = 0;
 
     public abstract boolean isEmpty();
     public abstract String toString();
@@ -54,4 +55,12 @@ public abstract class GameNode extends AbstractObservableField {
     public void addConnector(Side side) {
         connectors.add(side);
     }
+
+    public int getRotations() {
+        return rotations;
+    }
+    public void setRotations(int rotations) {
+        this.rotations = rotations % 4;
+    }
+
 }

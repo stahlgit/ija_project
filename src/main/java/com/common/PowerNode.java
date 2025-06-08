@@ -41,6 +41,7 @@ public class PowerNode extends GameNode {
             });
         }
         connectors = newConnectors;
+        rotations = (rotations + 1) % 4;
         notifyObservers();
     }
 
@@ -56,6 +57,7 @@ public class PowerNode extends GameNode {
             });
         }
         connectors = newConnectors;
+        rotations = (rotations + 3) % 4;
         notifyObservers();
     }
 

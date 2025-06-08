@@ -69,6 +69,6 @@ public class PowerNode extends GameNode {
                 sj.add(side.name());
             }
         }
-        return String.format("{P[%d@%d][%s]}", position.row(), position.col(), sj);
+        return String.format("{P[%d@%d][%s][%d]}", position.row(), position.col(), sj, rotations);
     }
 }

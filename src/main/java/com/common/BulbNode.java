@@ -59,6 +59,6 @@ public class BulbNode extends GameNode {
                 sj.add(side.name());
             }
         }
-        return String.format("{B[%d@%d][%s]}", position.row(), position.col(), sj);
+        return String.format("{B[%d@%d][%s][%d]}", position.row(), position.col(), sj, rotations);
     }
 }

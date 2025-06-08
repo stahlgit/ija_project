@@ -4,6 +4,7 @@ package com.game;
  *  This class is responsible for loading the game level from a files in data directory.
  */
 
+import com.common.GameNode;
 import com.common.Position;
 import com.common.Side;
 
@@ -52,7 +53,8 @@ public class LevelLoader {
         
         Game game = Game.create(maxRow, maxCol);
 
-        Pattern nodePattern = Pattern.compile("([A-Z])\\[([^\\]]+)\\](?:\\[([^\\]]*)\\])?");
+        //Pattern nodePattern = Pattern.compile("([A-Z])\\[([^\\]]+)\\](?:\\[([^\\]]*)\\])?");
+        Pattern nodePattern = Pattern.compile("([A-Z])\\[([^\\]]+)]\\[([^\\]]*)](?:\\[([^\\]]+)])?");
 
         for (String line : nodeLines) {
             line = line.substring(1, line.length() - 1); // Remove braces
@@ -66,6 +68,7 @@ public class LevelLoader {
             String type = matcher.group(1);
             String posPart = matcher.group(2);
             String sidesPart = matcher.group(3); // Could be null
+            String rotationPart = matcher.group(4);
 
             String[] posParts = posPart.split("@");
             int row = Integer.parseInt(posParts[0]);
@@ -80,6 +83,15 @@ public class LevelLoader {
                     } catch (IllegalArgumentException e) {
                         System.err.println("Invalid side: " + sideStr);
                     }
+                }
+            }
+
+            int correctRotations = 0;
+            if (rotationPart != null && !rotationPart.isEmpty()) {
+                try {
+                    correctRotations = Integer.parseInt(rotationPart.trim());
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid rotation number: " + rotationPart);
                 }
             }
 
@@ -101,10 +113,15 @@ public class LevelLoader {
                     default:
                         System.err.println("Unknown node type: " + type);
                 }
+                GameNode createdNode = game.node(pos);
+                if(createdNode != null) {
+                    createdNode.setRotations(correctRotations);
+                }
             } catch (Exception e) {
                 System.err.println("Error creating node: " + e.getMessage());
             }
         }
+
 
         game.init();
         return game;

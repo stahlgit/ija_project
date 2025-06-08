@@ -77,7 +77,7 @@ public class LinkNode extends GameNode {
                 sj.add(side.name());
             }
         }
-        return String.format("{L[%d@%d][%s]}", position.row(), position.col(), sj);
+        return String.format("{L[%d@%d][%s][%d]}", position.row(), position.col(), sj, rotations);
     }
 
     public void removeAllConnectors(){

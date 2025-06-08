@@ -141,7 +141,11 @@ public class GameLogger {
                 Position pos = node.getPosition();
                 String type = node.toString().substring(1, 2); // Extract type from node's toString
                 String details = node.toString().split("\\[")[2].replaceAll("[\\[\\]]", "");
-                return String.format("{%s[%d@%d][%s]}", type, pos.row(), pos.col(), details.replace("}",""));
+                if (details.equals("}")) details = "";
+
+                int rotations = node.getRotations();
+
+                return String.format("{%s[%d@%d][%s][%d]}", type, pos.row(), pos.col(), details, rotations);
             })
             .collect(Collectors.toList());
 

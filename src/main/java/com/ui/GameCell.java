@@ -143,12 +143,12 @@ public class GameCell extends Pane {
 
     private void drawConnectors() {
         for (Side side : node.getConnectors()) {
-            Line connector = createConnectorLine(side);
+            Line connector = createConnectorLine(side, node.light());
             getChildren().add(connector);
         }
     }
 
-    private Line createConnectorLine(Side side) {
+    private Line createConnectorLine(Side side, boolean isLit) {
         Line line = new Line();
         line.startXProperty().bind(widthProperty().divide(2));
         line.startYProperty().bind(heightProperty().divide(2));
@@ -171,6 +171,17 @@ public class GameCell extends Pane {
                 line.endYProperty().bind(heightProperty().divide(2));
             }
         }
+
+        if(isLit) {
+            line.setStroke(Color.GOLD);
+            line.setStrokeWidth(3);
+            line.setEffect(new Glow(0.8));
+        } else {
+            line.setStroke(Color.GRAY);
+            line.setStrokeWidth(2);
+            line.setEffect(null);
+        }
+
         return line;
     }
 

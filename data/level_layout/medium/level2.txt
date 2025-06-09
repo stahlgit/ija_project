@@ -7,5 +7,4 @@ grid:[6,6]
 {L[3@3][WEST,SOUTH]}
 {L[4@3][SOUTH,NORTH]}
 {B[5@3][WEST]}
-{L[5@4][EAST,SOUTH,NORTH]}
 

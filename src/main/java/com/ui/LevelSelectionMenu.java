@@ -13,6 +13,7 @@ import javafx.geometry.Pos;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -70,6 +71,31 @@ public class LevelSelectionMenu {
             table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
             table.setPrefHeight(300);
 
+            Button deleteButton = new Button("Delete Selected Level");
+            deleteButton.setOnAction(e -> {
+                LevelInfo selected = table.getSelectionModel().getSelectedItem();
+                if (selected == null) return;
+
+                String levelName = selected.getName(); // e.g., "level3"
+                int levelNumber = Integer.parseInt(levelName.replaceAll("[^\\d]", ""));
+
+                try {
+                    // Delete .log file
+                    Path logPath = Paths.get("data", "log", "Random", levelName + ".log");
+                    Files.deleteIfExists(logPath);
+
+                    // Delete .txt file
+                    Path layoutPath = Paths.get("data", "level_layout", "random", "level" + levelNumber + ".txt");
+                    Files.deleteIfExists(layoutPath);
+
+                    // Remove from table
+                    table.getItems().remove(selected);
+                } catch (IOException ex) {
+                    System.err.println("Failed to delete files for level " + levelName + ": " + ex.getMessage());
+                }
+            });
+
+
             // Load actual random levels
             File dir = Paths.get("data", "log", "Random").toFile();
             File[] files = dir.listFiles((d, name) -> name.matches("level\\d+\\.log"));
@@ -105,6 +131,8 @@ public class LevelSelectionMenu {
             });
 
             layout.getChildren().addAll(table);
+            layout.getChildren().add(deleteButton);
+
         }
         else{
 

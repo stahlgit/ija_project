@@ -287,6 +287,18 @@ public class GameLogger {
         if (!enableLogging) return;
         try {
             // Clear moves but preserve node states and best time
+            String originalDifficultyLine = null;
+            for (String line : lines) {
+                if (line.startsWith("difficulty:")) {
+                    originalDifficultyLine = line;
+                    break;
+                }
+            }
+            // If not found, create a default one (preserves original logic).
+            if (originalDifficultyLine == null) {
+                originalDifficultyLine = "difficulty: " + actualdifficulty;
+            }
+
             undoStack.clear();
             redoStack.clear();
             accumulatedTime = 0;

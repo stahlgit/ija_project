@@ -205,8 +205,8 @@ public class GameCell extends Pane {
     private void addRotationIndicator(int rotationNeeded) {
         Label indicator = new Label(String.valueOf((4 - rotationNeeded) % 4));
         indicator.setStyle("-fx-font-weight: bold; -fx-font-size: 16; -fx-text-fill: gray;");
-        indicator.setLayoutX(SIZE - 20);  // Position in top-right corner
-        indicator.setLayoutY(5);
+        indicator.setLayoutX(SIZE - 15);  // Position in top-right corner
+        indicator.setLayoutY(3);
         getChildren().add(indicator);
     }
 

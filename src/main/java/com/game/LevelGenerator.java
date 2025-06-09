@@ -205,7 +205,7 @@ public class LevelGenerator {
         };
     }
 
-    private void addFakesNodes(Game game, Difficulty difficulty) {
+    public void addFakesNodes(Game game, Difficulty difficulty) {
         Set<Position> emptyPositions = game.findEmptyNodes();
         if(emptyPositions.isEmpty()) return;
 

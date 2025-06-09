@@ -54,6 +54,7 @@ public class MainApp extends Application {
     private Timeline hintTimer;
     private boolean isRandomLevel = false;
     private Difficulty selectedRandomDifficulty = null;
+    private final LevelGenerator levelGenerator = new LevelGenerator(); // Instantiate LevelGenerator
 
     @Override
     public void start(Stage primaryStage) {
@@ -123,6 +124,13 @@ public class MainApp extends Application {
         return String.format("%02d:%02d", seconds / 60, seconds % 60);
     }
 
+    private static String extractActualDifficulty(List<String> logLines, String defaultDifficulty) {
+        return logLines.stream()
+                .filter(line -> line.startsWith("difficulty:"))
+                .map(line -> line.substring("difficulty:".length()).trim())
+                .findFirst()
+                .orElse(defaultDifficulty);
+    }
     // this function loads the level and applies the moves from the log file
     private void loadLevel(String difficulty, int levelNumber) {
         try {
@@ -143,15 +151,27 @@ public class MainApp extends Application {
 
             if (Files.exists(logPath)){
                 List<String> logLines = Files.readAllLines(logPath);
-                if (logLines.size() <= 3 &&
+                if (logLines.size() <= 4 &&
                 logLines.stream().anyMatch(line -> line.startsWith("grid:")) &&
                 logLines.stream().anyMatch(line -> line.startsWith("time:")) &&
-                logLines.stream().anyMatch(line -> line.startsWith("accumulated:"))) {
+                logLines.stream().anyMatch(line -> line.startsWith("accumulated:")) &&
+                logLines.stream().anyMatch(line-> line.startsWith("difficulty:"))
+                ) {
+                    String actualDiff = extractActualDifficulty(logLines, difficulty); // Replaced with function call
                     game = LevelLoader.loadLevel(filePath);
                     LevelGenerator.scrambleLinks(game);
+
+                    Difficulty actualDifficultyEnum = Difficulty.valueOf(actualDiff);
+
+                    if (actualDifficultyEnum != Difficulty.Easy) {
+                        // Now you can pass the enum directly to addFakesNodes
+                        levelGenerator.addFakesNodes(game, actualDifficultyEnum);
+                    }
                     game.recalculateLight(); // optional, in case links affect lighting
-                    logger = new GameLogger(difficulty, levelNumber, difficulty);
+
+                    logger = new GameLogger(difficulty, levelNumber, actualDiff);
                     logger.logNodeStates(game);
+
                     String timeLine = logLines.stream().filter(line -> line.startsWith("time:")).findFirst().orElse("time: ");
                     long oldBestTime = 0;
                     if(timeLine.length() > 6){
@@ -160,12 +180,18 @@ public class MainApp extends Application {
                     }
                 }else{
                     game = LevelLoader.loadLevel(logPath.toString());
-                    logger = new GameLogger(difficulty, levelNumber, difficulty);
+                    String actualDiff = extractActualDifficulty(logLines, difficulty);
+                    logger = new GameLogger(difficulty, levelNumber, actualDiff);
                     applyLoggedMoves(game, logger);
                 }
             } else {
                 game = LevelLoader.loadLevel(filePath);
+                // here add fakes
+
                 LevelGenerator.scrambleLinks(game);
+                Difficulty actualDifficultyEnum = Difficulty.valueOf(difficulty);
+
+                levelGenerator.addFakesNodes(game, actualDifficultyEnum);
                 game.recalculateLight(); // optional, in case links affect lighting
                 logger = new GameLogger(difficulty, levelNumber, difficulty);
                 logger.logNodeStates(game);
